@@ -1,0 +1,68 @@
+
+
+{# {% load staticfiles %} #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TreeThought</title>
+
+     <link href="css/bootstrap.min.css" rel="stylesheet">
+
+
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+
+    {# <link rel="stylesheet" type="text/css" href="{% static 'home/style2.css' %}" /> #}
+    <link href='https://fonts.googleapis.com/css?family=Buda:300|Nova+Oval|Syncopate' rel='stylesheet' type='text/css'>
+
+</head>
+
+<body>
+
+{# <div class="nav-bar">
+    <h3><a href="{% url 'home:home' %}">treethought</a>->
+        <span><a href="{% url 'sampler:sampler' %}">sampler</a>/</span><span><a href=" {% url 'music:main' %} ">music</a>\</span><span><a href=" {% url 'blog:index' %} ">blog</a></span>
+    </h3> #}
+
+
+{# {% for page in pages %} 
+
+
+
+    <h3><span><a href="/{{page}}">{{page}}</a>/</span></h3>
+    
+{% endfor %} #}
+
+</div>
+
+<div class="main-header">
+<p>
+<center><h1>treethought</h1></center>
+ </p>
+</div>
+ {% block content %}
+{% endblock %}
+
+
+
+
+
+
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
+    {# // <script src="{% static 'home/flyin.js/' %}"></script> #}
+
+
+</body>
+</html>
+
+
+
+
+
