@@ -48,6 +48,8 @@ coverage.xml
 #sublime
 .sublime-project
 
+pycharm
+.idea
 # wav_files
 wav_files/*
 
