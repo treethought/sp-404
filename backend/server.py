@@ -4,6 +4,7 @@ from flask import Flask, url_for, render_template, jsonify, request, make_respon
 import webview
 import app
 from sample_pads import Sampler
+from config import *
 
 
 # APP_ROOT = os.path.dirname(os.pardir(os.pardir(os.path.abspath(__file__))))
@@ -19,7 +20,7 @@ if not os.path.exists(static_dir):  # frozen executable path
 
 # server = Flask(__name__, static_folder=gui_dir, static_path='/static', template_folder=gui_dir)
 server = Flask(__name__, static_path='/static',
-               static_folder=static_dir, template_folder=templates_dir)
+               static_folder=STATIC, template_folder=TEMPLATES)
 
 server.config["SEND_FILE_MAX_AGE_DEFAULT"] = 1  # disable caching
 server.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'  # TODO regenerate and hide
