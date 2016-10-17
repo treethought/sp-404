@@ -7,6 +7,9 @@ import os
 import logging
 import shutil
 
+
+from collections import OrderedDict
+
 from config import *
 
 logging.basicConfig(level=logging.DEBUG,
@@ -22,20 +25,27 @@ CHUNK = 1024
 
 
 class Pad(object):  # TODO: making recorcer class into Sample method
-    """Audio Sample Class, creates segments for manipulating
-        Has Pyaudio Port instance."""
+    """Provides interface for recording and playing pydub audio sample.
+
+    Each instance provides control for one sample file.
+    Recording and playback occur within seperate threads, and allow for multiple instance to play audio through 
+    seperate pyaudio streams at once.
+    """
 
     def __init__(self, pad_num, loop=False):
         self.number = pad_num
+        # print('TYPE OF NUM IS {}'.format(type(self.number)))
 
         self.file = os.path.join(SAMPLES, '{}.wav'.format(self.number))
         self.port = pyaudio.PyAudio()
-        # self.segments = pydub.AudioSegment.from_wav(self.file)
+        # self.sample = pydub.AudioSegment.from_wav(self.file)
         # self._is_playing = False
         self._playing = threading.Event()
         self._armed = threading.Event()
         self._loop = threading.Event()
+
         #
+
     def __repr__(self):
         # return "pad{}".format(self.number)
         return str(self.number)
@@ -60,6 +70,12 @@ class Pad(object):  # TODO: making recorcer class into Sample method
     @property
     def loop_is_set(self):
         return self._loop.is_set()
+
+    def toggle_loop(self):
+        if self.loop_is_set:
+            self.clear_loop()
+        else:
+            self.set_loop()
 
     def set_loop(self):
         self._loop.set()
@@ -89,21 +105,21 @@ class Pad(object):  # TODO: making recorcer class into Sample method
         self.disarm()
         self._recorder.join()
 
-    @property  # TODO: chamge tests for segments property
-    def segments(self):
+    @property  # TODO: chamge tests for sample property
+    def sample(self):
         try:
             self._segments = pydub.AudioSegment.from_wav(self.file)
         except FileNotFoundError:
             print('need to make file')
-            with open(self.file) as f:
+            with open(self.file, 'w+') as f:
                 f.close()
-            self.segments()
+            self.sample()
         return self._segments
 
     def save(self, frames):
         """Creates new file if one doesn't exist"""
         try:
-            prev_segs = self.segments
+            prev_segs = self.sample
             f = wave.open(self.file, 'wb')
             f.setnchannels(CHANNELS)
             f.setsampwidth(self.port.get_sample_size(FORMAT))
@@ -112,7 +128,7 @@ class Pad(object):  # TODO: making recorcer class into Sample method
             f.close()
             print('closed file')
 
-            new_segs = self.segments
+            new_segs = self.sample
             assert(prev_segs is not new_segs)
 
         except FileNotFoundError:
@@ -188,16 +204,16 @@ class PlayThread(threading.Thread):
 
         self.pad = pad_object
         self.name = "Pad {} PlayThread".format(self.pad.number)
-        self.stream = self.pad.port.open(format=self.pad.port.get_format_from_width(self.pad.segments.sample_width),
-                                         channels=self.pad.segments.channels,
-                                         rate=self.pad.segments.frame_rate,
+        self.stream = self.pad.port.open(format=self.pad.port.get_format_from_width(self.pad.sample.sample_width),
+                                         channels=self.pad.sample.channels,
+                                         rate=self.pad.sample.frame_rate,
                                          output=True)
         self.loop_count = 0
 
     def play_sample(self):
         """Snippet from pydub.playback so we can keep the stream open (pydub closes after play"""
         from pydub.utils import make_chunks
-        segs = self.pad.segments + 8
+        segs = self.pad.sample + 8
         # segs = segs.reverse() # REVERSE TODO: reverse and other effects
 
         for chunk in make_chunks(segs, 50):  # only doing this causes lag between loops
@@ -206,10 +222,11 @@ class PlayThread(threading.Thread):
                 break
 
     def end(self):
-        
+
         self.stream.stop_stream()
         self.stream.close()
         self.pad.stop_playing()
+
         # self.loop_count = 0
 
     def run(self):
@@ -235,8 +252,74 @@ class PlayThread(threading.Thread):
 
         return
 
-pad = Pad(5, loop=True)
-pad.play()
+
+class Sampler(object):
+    """Interface for controlling a multiple Pad objects"""
+
+    def __init__(self, size):
+        super(Sampler, self).__init__()
+        self._size = size
+        self._pads = self._load_pads()
+  
+
+    def _load_pads(self):
+        pads = OrderedDict()
+        for pad_num in range(1, self._size + 1):
+            pads[pad_num] = Pad(pad_num)
+        return pads
+
+    def _report_status(self):
+        status = {
+            'playing': [self.pad[p].number for p in self._pads if self.pad[p].is_playing],
+            'recording': [self.pad[p].number for p in self._pads if self.pad[p].is_armed],
+            'loop': [self.pad[p].number for p in self._pads if self.pad[p].loop_is_set],
+        }
+        return status
+
+    @property
+    def status(self):
+        return self._report_status()
+
+    @property
+    def pad(self):
+        """Returns an OrderedDict, so pads are accessed with the integer of pad_num as a key"""
+        return self._pads
+
+    def trigger(self, pad_num):
+        if self.pad[pad_num].is_playing:
+            self.pad[pad_num].stop_playing()
+        else:
+            self.pad[pad_num].play()
+        return self.status
+
+    def stop(self, pad_num):
+        self.pad[pad_num].stop_playing()
+        return self.status
+
+    def stop_all(self):
+        for pad_num in self.status['playing']:
+            self.pad[pad_num].stop_playing()
+        return self.status
+
+    def record(self, pad_num):  # TODO: Do record differently for resampling
+                            # maybe open a record thread and record to only one pad
+        self.pad[pad_num].record()
+        return self.status
+
+    def stop_recording(self):
+        for pad in self.status['recording']:
+            pad.stop_recording()
 
 
-#
+    # def stop_recording(self, pad_nums):  # TODO: Possibly end recording at thread level
+    #     for pad_num in pad_nums:
+    #         self.pad[pad_num].stop_recording()
+    #     return self.status
+
+    def toggle_loop(self, pad_num):  # TODO prbly loop only one pad at time?
+        self.pad[pad_num].toggle_loop()
+        return self.status
+
+sampler = Sampler(12)
+
+

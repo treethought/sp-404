@@ -1,11 +1,8 @@
 """
 Application stub
 """
-
-
-def initialize():
-    # perform heavy stuff here
-    return True
+from flask import session
+from collections import OrderedDict
 
 
 def do_stuff():

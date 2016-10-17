@@ -1,9 +1,9 @@
 import os
 from collections import OrderedDict
-from flask import Flask, url_for, render_template, jsonify, request, make_response
+from flask import Flask, url_for, render_template, jsonify, request, make_response, session, redirect
 import webview
 import app
-from sample_pads import Pad
+from sample_pads import Sampler
 
 
 # APP_ROOT = os.path.dirname(os.pardir(os.pardir(os.path.abspath(__file__))))
@@ -13,17 +13,18 @@ templates_dir = os.path.join(APP_ROOT, 'templates')
 
 # gui_dir = os.path.join(os.getcwd(), "gui")  # development path
 if not os.path.exists(static_dir):  # frozen executable path
-    gui_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gui")
+    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+    templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+
 
 # server = Flask(__name__, static_folder=gui_dir, static_path='/static', template_folder=gui_dir)
-server = Flask(__name__, static_path='/static', static_folder=static_dir, template_folder=templates_dir)
+server = Flask(__name__, static_path='/static',
+               static_folder=static_dir, template_folder=templates_dir)
 
 server.config["SEND_FILE_MAX_AGE_DEFAULT"] = 1  # disable caching
+server.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'  # TODO regenerate and hide
 
-sampler = OrderedDict()
-for pad_num in range(1, 13):
-    pad = Pad(pad_num)
-    sampler[str(pad.number)] = pad
+sampler = Sampler(12)
 
 
 @server.after_request
@@ -32,54 +33,14 @@ def add_header(response):
     return response
 
 
-@server.route("/")
-def landing():
-    """
-    Render index.html. Initialization is performed asynchronously in initialize() function
-    """
-    return render_template("index.html", pads=sampler.values())
-
-
-@server.route('/trigger/<pad_num>', methods=['POST'])
-def trigger(pad_num):
-    print(type(pad_num))
-    pad = sampler[pad_num]
-    pad.play()
-    return render_template("index.html")
-
-
-@server.route('/stop/<pad_num>', methods=['POST'])
-def stop(pad_num):
-    pad = sampler[pad_num]
-    pad.stop_playing()
-    return render_template("index.html")
-
-@server.route('/record/<pad_num>', methods=['POST'] )
-def record(pad_num):
-    pad = sampler[pad_num]
-    pad.record()
-    return render_template("index.html")
-
-@server.route('/stop_recording/<pad_num>', methods=['POST'])
-def stop_recording(pad_num):
-    pad = sampler[pad_num]
-    pad.stop_recording()
-    return render_template("index.html")
-
-
-
-
-
-
 @server.route("/init")
 def initialize():
     """
     Perform heavy-lifting initialization asynchronously.
     :return:
     """
-    can_start = app.initialize()
 
-    if can_start:
+    if True:
         response = {
             "status": "ok",
         }
@@ -89,6 +50,39 @@ def initialize():
         }
 
     return jsonify(response)
+
+
+@server.route("/")
+def landing():
+    """
+    Render index.html. Initialization is performed asynchronously in initialize() function
+    """
+    return render_template("index.html")
+
+
+@server.route('/trigger/<pad_num>', methods=['POST'])
+def trigger(pad_num):
+    """Plays or stops pad appropiately"""
+    response = sampler.trigger(int(pad_num))
+    return jsonify(**response)
+
+
+@server.route('/toggle_loop/<pad_num>', methods=['POST'])
+def toggle_loop(pad_num):
+    response = sampler.toggle_loop(int(pad_num))
+    return jsonify(**response)
+
+
+@server.route('/record', methods=['POST'])
+def record():
+    response = sampler.record()
+    return jsonify(**response)
+
+
+@server.route('/stop_recording', methods=['POST'])
+def stop_recording():
+    response = sampler.stop_recording()
+    return jsonify(**response)
 
 
 @server.route("/choose/path")
