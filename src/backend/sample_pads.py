@@ -271,6 +271,7 @@ class Sampler(object):
     def _report_status(self):
         status = {
             'playing': [self.pad[p].number for p in self._pads if self.pad[p].is_playing],
+            'not_playing': [self.pad[p].number for p in self._pads if not self.pad[p].is_playing],
             'recording': [self.pad[p].number for p in self._pads if self.pad[p].is_armed],
             'loop': [self.pad[p].number for p in self._pads if self.pad[p].loop_is_set],
         }
@@ -307,8 +308,9 @@ class Sampler(object):
         return self.status
 
     def stop_recording(self):
-        for pad in self.status['recording']:
-            pad.stop_recording()
+        for pad_num in self.status['recording']:
+            self.pad[pad_num].stop_recording()
+        return self.status
 
 
     # def stop_recording(self, pad_nums):  # TODO: Possibly end recording at thread level
@@ -320,6 +322,6 @@ class Sampler(object):
         self.pad[pad_num].toggle_loop()
         return self.status
 
-sampler = Sampler(12)
+
 
 

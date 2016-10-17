@@ -33,23 +33,28 @@ def add_header(response):
     return response
 
 
-@server.route("/init")
-def initialize():
-    """
-    Perform heavy-lifting initialization asynchronously.
-    :return:
-    """
+# @server.route("/init")
+# def initialize():
+#     """
+#     Perform heavy-lifting initialization asynchronously.
+#     :return:
+#     """
 
-    if True:
-        response = {
-            "status": "ok",
-        }
-    else:
-        response = {
-            "status": "error"
-        }
+#     if True:
+#         response = {
+#             "status": "ok",
+#         }
+#     else:
+#         response = {
+#             "status": "error"
+#         }
 
-    return jsonify(response)
+#     return jsonify(response)
+
+
+@server.route('/status', methods=['GET'])
+def status():
+    return jsonify(sampler.status)
 
 
 @server.route("/")
@@ -57,7 +62,7 @@ def landing():
     """
     Render index.html. Initialization is performed asynchronously in initialize() function
     """
-    return render_template("index.html")
+    return render_template("index.html", stats=sampler.status)
 
 
 @server.route('/trigger/<pad_num>', methods=['POST'])
@@ -73,47 +78,47 @@ def toggle_loop(pad_num):
     return jsonify(**response)
 
 
-@server.route('/record', methods=['POST'])
-def record():
-    response = sampler.record()
+@server.route('/record/<pad_num>', methods=['POST'])
+def record(pad_num):
+    response = sampler.record(int(pad_num))
     return jsonify(**response)
 
 
-@server.route('/stop_recording', methods=['POST'])
+@server.route('/stop_recording', methods=['GET'])
 def stop_recording():
     response = sampler.stop_recording()
     return jsonify(**response)
 
 
-@server.route("/choose/path")
-def choose_path():
-    """
-    Invoke a folder selection dialog here
-    :return:
-    """
-    dirs = webview.create_file_dialog(webview.FOLDER_DIALOG)
-    if dirs and len(dirs) > 0:
-        directory = dirs[0]
-        if isinstance(directory, bytes):
-            directory = directory.decode("utf-8")
+# @server.route("/choose/path")
+# def choose_path():
+#     """
+#     Invoke a folder selection dialog here
+#     :return:
+#     """
+#     dirs = webview.create_file_dialog(webview.FOLDER_DIALOG)
+#     if dirs and len(dirs) > 0:
+#         directory = dirs[0]
+#         if isinstance(directory, bytes):
+#             directory = directory.decode("utf-8")
 
-        response = {"status": "ok", "directory": directory}
-    else:
-        response = {"status": "cancel"}
+#         response = {"status": "ok", "directory": directory}
+#     else:
+#         response = {"status": "cancel"}
 
-    return jsonify(response)
+#     return jsonify(response)
 
 
-@server.route("/do/stuff")
-def do_stuff():
-    result = app.do_stuff()
+# @server.route("/do/stuff")
+# def do_stuff():
+#     result = app.do_stuff()
 
-    if result:
-        response = {"status": "ok", "result": result}
-    else:
-        response = {"status": "error"}
+#     if result:
+#         response = {"status": "ok", "result": result}
+#     else:
+#         response = {"status": "error"}
 
-    return jsonify(response)
+#     return jsonify(response)
 
 
 def run_server():
